@@ -91,7 +91,7 @@ class SLook():
                 if fold == True:
                     ln = ln.lower()
                 if ln.startswith(key):
-                    lines.append(ln)
+                    lines.append(line)
                 else: break 
         return lines
 
