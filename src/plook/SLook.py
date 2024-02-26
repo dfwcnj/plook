@@ -4,136 +4,124 @@
 import os
 import sys
 
-class SLook:
+class SLook():
     #def __init__(self, key, file='c:/program files/uwin/usr/share/dict/words'):
-    def __init__(self, key, fold=False, file='/usr/share/dict/words'):
+    def __init__(self):
         """ SLook
 
         file binary search somewhat like the Unix/Linux look command
         """
-        self.key = key
-        self.file = file
-        self.fold = fold
         self.punt = 1024 # switch to linear search when lo and hi this close
-        self.fp = None
-        try:
-            self.size = os.path.getsize(file)
-            self.fp = open(file, 'r')
-        except Exception as e:
-           print('%s: %s' % (file, e), file=sys.stderr)
-           sys.exit(1)
 
-    def search(self):
+    def search(self, fp, key, file, fold):
         """ search()
 
         perform a file binary search
         """
-        if self.fold:
-            self.key = self.key.lower()
+
+        if fold: key = key.lower()
+
         found = -1
         lo = 0
-        hi = self.size
+        hi = os.path.getsize(file)
 
         while lo < hi:
+
             mid = int(lo + (hi - lo) / 2)
-            self.fp.seek(mid, os.SEEK_SET)
+            fp.seek(mid, os.SEEK_SET)
 
             # ensure that we are at line start
             if mid != 0:
-                #ln = self.fp.readline().strip().decode('latin1')
-                ln = self.fp.readline().strip()
-                if self.fold == True: ln = ln.lower()
-                if ln.startswith(self.key):
+                #ln = fp.readline().strip().decode('latin1')
+                ln = fp.readline().strip()
+                if fold == True: ln = ln.lower()
+                if ln.startswith(key):
                     found = mid
+                    # continue searching for the first
                     hi = mid -1
                     continue
                 else:
-                    mid = self.fp.tell()
-            #ln = self.fp.readline().strip().decode('latin1')
-            ln = self.fp.readline().strip()
-            if self.fold == True: ln = ln.lower()
+                    mid = fp.tell()
+            #ln = fp.readline().strip().decode('latin1')
+            ln = fp.readline().strip()
+            if fold == True: ln = ln.lower()
 
             # punt to linear search
             if (hi - lo) < self.punt:
-                self.fp.seek(lo, os.SEEK_SET)
+                fp.seek(lo, os.SEEK_SET)
                 while lo < hi:
-                    mid = self.fp.tell()
-                    #ln = self.fp.readline().strip().decode('latin1')
-                    ln = self.fp.readline().strip()
-                    if self.fold == True:
+                    mid = fp.tell()
+                    #ln = fp.readline().strip().decode('latin1')
+                    ln = fp.readline().strip()
+                    if fold == True:
                         ln = ln.lower()
-                    if found > mid and ln.startswith(self.key):
+                    if found > mid and ln.startswith(key):
+                        # should be the first
                         found = mid
                         break
                 break
 
             # find the first line that starts with key
-            if self.key > ln:
+            if key > ln:
                 lo = mid + 1
             else:
-                if ln.startswith(self.key):
+                if ln.startswith(key):
                     found = mid
+                # continue searching for the first
                 hi = mid - 1
 
         return found
 
-    def lookiter(self):
+    def lookiter(self, fp, key, file, fold):
         """ lookiter()
 
         return looked for lines
         """
-        off = self.search()
+        lines = []
+        off = self.search(fp, key, file, fold)
         if off >= 0:
-            self.fp.seek(off)
+            fp.seek(off)
             while 1 == 1:
                 try:
-                    #line = self.fp.readline().strip().decode('latin1')
-                    line = self.fp.readline().strip()
+                    #line = fp.readline().strip().decode('latin1')
+                    line = fp.readline().strip()
                 except Exception as e:
                     print(e)
                 ln = line
-                if self.fold == True:
+                if fold == True:
                     ln = ln.lower()
-                if ln.startswith(self.key):
-                    yield line
+                if ln.startswith(key):
+                    lines.append(ln)
                 else: break 
+        return lines
 
-    def look(self):
+    def look(self, key, file, fold):
         """ look()
 
         top level look function
         """
-        li = self.lookiter()
-        for l in li:
-            try:
-                print(l)
-            except Exception as e:
-                pass
+        with open(file, 'r') as fp:
+            li = self.lookiter(fp, key, file, fold)
+            for l in li:
+                try:
+                    print(l, file=sys.stdout)
+                except Exception as e:
+                    print('%s %s %s' % (key, file, e), file=sys.stderr)
 
 def main():
-    import optparse
+    import argparse
+    argp = argparse.ArgumentParser(description='file binary search')
+    argp.add_argument('--file', default='/usr/share/dict/words',
+        help='sorted text file to search')
+    argp.add_argument('--key', required=True,
+        help='word to search')
+    argp.add_argument('--fold', action='store_true', default=False,
+        help='fold case - case independent search')
 
-    optp = optparse.OptionParser()
-    optp.add_option('-f', '--fold', dest='fold',
-                    help='ignore case', action='store_true',
-                    default=False)
-    (opts, args) = optp.parse_args()
+    args = argp.parse_args()
 
-    lk = None
-    fld = False
-    if opts.fold == True:
-        fld = True
-    if len(args) == 2:
-        lk = SLook(key=args[0], fold=fld, file=args[1])
-    elif len(args) == 1:
-        lk = SLook(key=args[0], fold=fld)
-    else:
-        sys.stderr.write('Usage: look [-f] key (file)\n')
-        sys.exit()
-    if opts.fold == True:
-        lk.fold = True
-
-    lk.look()
+    slk = SLook()
+    slk.look(args.key, args.file, args.fold)
 
 
 if __name__ == '__main__':
