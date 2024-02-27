@@ -14,7 +14,7 @@ class Look:
         self.key = key
         self.file = file
         self.fold = fold
-        self.punt = 2048 # switch to linear search when lo and hi are this close
+        self.punt = 1024 # switch to linear search when lo and hi are this close
         try:
             self.size = os.path.getsize(file)
             self.fp = open(file, 'r')
@@ -56,13 +56,13 @@ class Look:
             # punt to linear search
             if (hi - lo) < self.punt:
                 self.map.seek(lo, os.SEEK_SET)
-                while mid < hi:
-                    mid = self.map.tell()
+                while lo < hi:
+                    lo = self.map.tell()
                     ln = self.map.readline().strip().decode('latin1')
                     if self.fold == True:
                         ln = ln.lower()
                     if ln.startswith(self.key):
-                        found = mid
+                        found = lo
                         break
                 break
 
