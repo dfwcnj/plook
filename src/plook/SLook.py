@@ -50,7 +50,7 @@ class SLook():
             if (hi - lo) < self.punt:
                 fp.seek(lo, os.SEEK_SET)
                 while lo < hi:
-                    mid = fp.tell()
+                    lo = fp.tell()
                     #ln = fp.readline().strip().decode('latin1')
                     ln = fp.readline().strip()
                     if fold == True:
